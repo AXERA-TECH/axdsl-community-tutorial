@@ -1,5 +1,9 @@
 # AXDSL 社区教程
 
+[![Documentation Status](https://readthedocs.org/projects/axdsl-community-tutorial/badge/?version=latest)](https://axdsl-community-tutorial.readthedocs.io/zh-cn/latest/)
+
+**在线阅读：** <https://axdsl-community-tutorial.readthedocs.io/zh-cn/latest/>
+
 面向 AX8860 NPU 的中文 AXDSL 教程，基于 VitePress 构建。
 
 ## 本地开发
