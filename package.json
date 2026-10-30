@@ -1,0 +1,20 @@
+{
+  "name": "c-axdsl",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vitepress dev docs --host 0.0.0.0 --port 5177",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs --host 0.0.0.0 --port 4177",
+    "generate:api": "python3 scripts/generate_api_reference.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "BSD-3-Clause",
+  "description": "",
+  "devDependencies": {
+    "markdown-it-mathjax3": "^4.3.2",
+    "vitepress": "^1.6.4"
+  },
+  "private": true
+}

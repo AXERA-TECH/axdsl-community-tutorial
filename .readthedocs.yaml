@@ -1,0 +1,14 @@
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    nodejs: "22"
+  jobs:
+    install:
+      - npm ci --no-audit --no-fund
+    build:
+      html:
+        - npm run build
+        - mkdir -p "$READTHEDOCS_OUTPUT/html"
+        - cp -R docs/.vitepress/dist/. "$READTHEDOCS_OUTPUT/html/"

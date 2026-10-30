@@ -1,0 +1,12 @@
+node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+__pycache__/
+*.pyc
+.DS_Store
+output/
+
+# Source material used to bootstrap this tutorial. Keep them out of the docs repo.
+/dsl doc/
+/dsl doc.zip
+/__MACOSX/
