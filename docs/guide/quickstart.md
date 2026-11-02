@@ -1,6 +1,6 @@
 # 10 分钟快速上手
 
-本章目标是用最小例子跑通 AXDSL，并理解每个关键语句的含义。示例不需要先掌握多核、多芯片和控制流，只需要理解：
+本章目标是用最小例子跑通 AXDSL，并理解每个关键语句的含义。示例不需要先掌握控制流，只需要理解：
 
 - Kernel 定义
 - Grid 启动
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 ax.init(chip_num=1, core_num=1)
 ```
 
-`ax.init` 创建 / 重置当前 DSL recording context，并声明参与 Kernel 的 chip 数。`core_num` 参数当前用于兼容，实际每次 launch 会通过 grid / launch config 选择 core 数。
+`ax.init` 创建 / 重置当前 DSL recording context。本教程示例统一使用 `chip_num=1, core_num=1`。
 
 重新调用 `ax.init` 会重置当前配置。
 
@@ -209,7 +209,7 @@ kernel[8](...)
 kernel[(grid_m, grid_n), core_num](...)
 ```
 
-这里方括号中的整体是 launch config：第一项 `grid_shape`，第二项 `core_num`。省略 `core_num` 时默认为 grid 元素数量；但对多维 grid，建议始终显式指定，避免把 `(grid_m, grid_n)` 误解成其他 launch config 形式。
+这里方括号中的整体是 launch config：第一项是 `grid_shape`，第二项是 core 数。教程示例保持单 core 配置。
 
 ## 5. 参数语义速览
 

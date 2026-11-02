@@ -223,17 +223,7 @@ C = A @ B.T + bias
 
 可先用 elementwise `add`，再研究 `matmul` 的常量权重 / bias 参数。
 
-### 练习 4：多核显式指定
-
-尝试：
-
-```python
-kernel[(grid_m, grid_n), core_num](...)
-```
-
-观察 core 数限制和调度行为。
-
-### 练习 5：性能报告
+### 练习 4：性能报告
 
 开启 `dump_dsl_perf`，比较不同 tile 的：
 

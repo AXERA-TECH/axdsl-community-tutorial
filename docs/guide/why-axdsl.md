@@ -1,6 +1,6 @@
 # 为什么选择 AXDSL
 
-AXDSL 是 AX8860 NPU 工具链中的 Python 自定义 Kernel DSL。它不是“把 Python 直接跑在 NPU 上”的通用 Python 编译器，而是一个**面向 NPU Kernel 的记录式 DSL**：开发者用 Python 描述算法、tile 划分、数据搬运和并行协作，`ax.builder` 把这段函数记录成 AXDSL Graph IR，再交给后端完成图优化、算子映射、任务调度和编译。
+AXDSL 是 AX8860 NPU 工具链中的 Python 自定义 Kernel DSL。它不是“把 Python 直接跑在 NPU 上”的通用 Python 编译器，而是一个**面向 NPU Kernel 的记录式 DSL**：开发者用 Python 描述算法、tile 划分和数据搬运，`ax.builder` 把这段函数记录成 AXDSL Graph IR，再交给后端完成图优化、算子映射、任务调度和编译。
 
 一句话概括：
 
@@ -18,7 +18,6 @@ AXDSL 是 AX8860 NPU 工具链中的 Python 自定义 Kernel DSL。它不是“�
 - 数据布局
 - 内存层级
 - DMA / 计算引擎调度
-- 多核同步
 - 精度与量化
 
 这些细节都直接暴露在实现里，算法工程师很难快速把想法变成可运行版本。
@@ -47,17 +46,9 @@ LLM、检测、检索、稀疏计算等场景经常需要：
 
 传统静态图模型很难自然表达这些逻辑。
 
-### 4. 并行和通信复杂
+### 4. 硬件细节和执行链路复杂
 
-AX8860 的能力来自多个层次：
-
-- 每 chip 多个 core
-- core 私有 OCM
-- chip 内 Shared OCM
-- 每 chip DDR
-- chip 间 Neulink
-
-如果没有统一抽象，多核和多芯片代码会快速演变成难以维护的底层同步代码。
+NPU Kernel 不仅涉及算法语义，还涉及数据布局、内存层级、DMA / 计算引擎调度、精度和编译产物验证。如果这些细节全部散落在底层代码中，算法很难快速迭代。
 
 ## AXDSL 的解决思路
 
@@ -66,10 +57,8 @@ AXDSL 把开发过程拆成五个可控层次：
 ```text
 算法语义          Python / AXDSL 算子 API
 任务划分          Program Grid
-数据位置          DDR / OCM / Shared OCM
+数据位置          DDR / OCM
 数据搬运          load / store / move / dynamic_ld / dynamic_st
-核间协作          pub / sub + Shared OCM
-芯片间搬运        shmem / Neulink API
 ```
 
 这带来三个重要变化。
@@ -93,10 +82,8 @@ AXDSL 不承诺“随便写就自动最优”。它把最重要的硬件决策�
 
 - tile 大小
 - grid 形状
-- core 数
 - load / store 时机
 - 中间 tensor 所在内存
-- 多核通信粒度
 - 控制流展开程度
 
 这更适合高性能 Kernel 工程。
@@ -125,7 +112,6 @@ AXDSL 不承诺“随便写就自动最优”。它把最重要的硬件决策�
 | 数据搬运控制 | 强 | 弱 | 强 |
 | tile 与并行策略 | 手工 | 多依赖通用优化 | 显式可写 |
 | 控制流 | 取决于底层工具 | 常受限 | 结构化 API |
-| 多核 / 多芯片 | 手工复杂 | 依赖框架 | DSL API 支持 |
 | 性能可解释性 | 强但成本高 | 弱 | 较强 |
 | 适合场景 | 极致底层优化 | 简单扩展 | 高性能自定义 Kernel |
 
@@ -150,7 +136,6 @@ AXDSL 不把 DDR 与 OCM 的区别完全隐藏。开发者可以清楚表达：
 
 - 输入输出在 DDR
 - 计算局部 tile 在 OCM
-- 跨 core 共享数据在 Shared OCM
 - 同步状态在 Signal
 
 对高性能 Kernel 来说，这是性能可控的关键。
@@ -176,16 +161,7 @@ AXDSL 提供：
 
 它们会被记录为包含子图的 IR 节点，而不是简单在 Python 编译期展开，因此能表达运行期选择和循环。
 
-### 5. 多芯片协同抽象
-
-AX8860 支持 chip 间数据搬运。AXDSL 提供：
-
-- `shmem_put`
-- shared memory tensor 创建
-
-chip 内 core 之间的版本依赖使用 `pub / sub` 表达；`pub / sub` 不是芯片间通信接口。
-
-### 6. 工程化工具
+### 5. 工程化工具
 
 - `enable_cache`：复用编译产物
 - `dump_dsl_perf`：导出性能分析材料
@@ -201,7 +177,7 @@ chip 内 core 之间的版本依赖使用 `pub / sub` 表达；`pub / sub` 不�
 | Backend | `BACKEND.AX8860`, `BACKEND.DEVICE_CPU` | NPU 与设备 Arm CPU 执行路径 |
 | 初始化 | `ax.init` | 配置参与 chip 数 |
 | Program | `program_id`, `num_programs` | 获取逻辑任务坐标与范围 |
-| 内存 | `load`, `store`, `move` | DDR / OCM / Shared OCM 搬运 |
+| 内存 | `load`, `store`, `move` | DDR / OCM 搬运 |
 | Elementwise | `add`, `sub`, `mul`, `div` | 基础逐元素计算 |
 | Activation | `sigmoid`, `gelu`, `silu`, `softplus` | 常见激活函数 |
 | Reduction | `sum`, `max`, `min`, `argmax`, `cumsum` | 维度归约 |
@@ -209,8 +185,6 @@ chip 内 core 之间的版本依赖使用 `pub / sub` 表达；`pub / sub` 不�
 | Shape | `reshape`, `transpose`, `concat`, `expand`, `pad` | 布局和形状变换 |
 | Index | `gather`, `scatter`, `index_select`, `topk`, `nonzero` | 动态索引 |
 | Control Flow | `if_op`, `while_loop`, `range`, `switch` | 运行期结构化控制流 |
-| Multi-core | `pub`, `sub`, Shared OCM | chip 内 core 协作 |
-| Multi-chip | `shmem_put` | Neulink 数据搬运 |
 | Validation | `check`, `check_mode`, tolerance | PYRUN / CRUN 对比 |
 | Performance | trace, perf artifacts | cycle、traffic、利用率分析 |
 
@@ -222,13 +196,13 @@ chip 内 core 之间的版本依赖使用 `pub / sub` 表达；`pub / sub` 不�
    Kernel 内支持的 Python 语法和库有明确边界，不是任意 Python 都能映射到 NPU。
 
 2. **不是完全隐式自动优化**  
-   tile、grid、内存位置和通信方式仍由开发者设计；AXDSL 提供表达能力和分析工具。
+   tile、grid 和内存位置仍由开发者设计；AXDSL 提供表达能力和分析工具。
 
 3. **不是所有算子都支持所有 dtype / shape / backend**  
    发布前应检查目标工具链的 API Reference 和支持矩阵。
 
 4. **不是只能写小算子**  
-   它也可以表达 tile 循环、动态执行、多核通信和多芯片协作。
+   它也可以表达 tile 循环和动态执行。
 
 ## 小结
 
@@ -236,7 +210,7 @@ AXDSL 的价值可以概括为：
 
 - **上手快**：Python Kernel 写法，示例清晰。
 - **控制强**：显式表达 tile、内存和并行。
-- **能力全**：覆盖控制流、多核、多芯片和动态读写。
+- **能力全**：覆盖控制流、tile 计算和动态读写。
 - **可验证**：PYRUN / CRUN / BRUN 与逐层检查。
 - **可调优**：编译产物、trace 和性能报告联动。
-- **适合社区传播**：从 Vector Add 到 Tiled MatMul、动态循环和多芯片数据搬运都能用同一套模型讲解。
+- **适合社区传播**：从 Vector Add 到 Tiled MatMul 和动态循环都能用同一套模型讲解。

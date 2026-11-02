@@ -43,14 +43,7 @@
 | EU duty | execution unit 占用情况 |
 | Cache key | 判断编译缓存是否命中的组合键 |
 | AXModel | 可由 runtime 加载执行的编译产物 |
-| Neulink | AX8860 chip 间通信模块 |
-| PE | Processing Element；多芯片通信中常指目标 chip |
-| Publication | `pub` 发布的 tensor 版本事件 |
-| Subscription | `sub` 订阅的 tensor 版本事件 |
-| Producer | 某个 tensor shard 或版本的写入方 |
-| Consumer | 读取某个 tensor shard 或版本的一方 |
-| Deadlock | 多个执行方相互等待，无法继续 |
-| Owner | 某输出区域唯一或明确负责写入的 program / core / chip |
+| Owner | 某输出区域唯一或明确负责写入的 program |
 | Dtype | tensor 数据类型 |
 | BF16 | 16-bit brain floating point |
 | FP16 | 16-bit IEEE floating point |

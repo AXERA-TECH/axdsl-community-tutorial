@@ -233,45 +233,7 @@ ax.dsl.dynamic_st(
 )
 ```
 
-## 23. Shared OCM tensor
-
-```python
-from axnn.backend.base import MemoryType
-
-shared = ax.dsl.create_tensor(
-    shape=x.shape,
-    dtype=x.dtype,
-    memory_type=MemoryType.SHARED_OCM,
-)
-```
-
-## 24. 发布核间共享 tensor
-
-```python
-from axnn.dsl import parallel as axd
-
-published = axd.pub(shared)
-```
-
-## 25. 订阅核间共享 tensor
-
-```python
-subscribed = axd.sub(shared)
-```
-
-`pub / sub` 用于 chip 内 core 之间的 tensor 版本依赖，不是芯片间通信。
-
-## 26. 发送数据到远端 chip
-
-```python
-ax.parallel.shmem_put(
-    dst=remote_dst,
-    src=local_src,
-    pe=remote_chip_id,
-)
-```
-
-## 27. 选择 DEVICE_CPU 后端
+## 23. 选择 DEVICE_CPU 后端
 
 ```python
 from axnn.backend import BACKEND
@@ -284,7 +246,7 @@ def kernel(...):
     ...
 ```
 
-## 28. CRUN 正确性检查
+## 24. CRUN 正确性检查
 
 ```python
 @ax.builder(
@@ -299,7 +261,7 @@ def kernel(...):
     ...
 ```
 
-## 29. 编译缓存
+## 25. 编译缓存
 
 ```python
 @ax.builder(
@@ -311,7 +273,7 @@ def kernel(...):
     ...
 ```
 
-## 30. 性能导出
+## 26. 性能导出
 
 ```python
 @ax.builder(
@@ -324,19 +286,19 @@ def kernel(...):
     ...
 ```
 
-## 31. Trace 环境变量
+## 27. Trace 环境变量
 
 ```bash
 DUMP_NPU_TRACE=1 DEBUG_SIM_CYCLE_TRACE=1 python3 kernel.py
 ```
 
-## 32. device_print
+## 28. device_print
 
 ```python
 ax.dsl.device_print(...)
 ```
 
-## 33. BRUN session
+## 29. BRUN session
 
 ```python
 ax.init(chip_num=1)

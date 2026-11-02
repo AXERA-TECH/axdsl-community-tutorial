@@ -63,7 +63,6 @@ cases/
 | memory bandwidth | 带宽压力 | 访存受限 |
 | overlap | 搬运与计算重叠 | 串行等待 |
 | idle / bubble | 空闲周期 | 同步或任务不均 |
-| multi-core idle | core 空闲 | 负载不均 |
 
 ## 3. 性能工具
 
@@ -84,7 +83,7 @@ def kernel(...):
 
 - CRUN
 - cache 关闭
-- 当前源码要求 single chip
+- 当前源码要求单 chip 配置
 
 可导出：
 
@@ -190,21 +189,20 @@ output/build_context.json
 - 改变 layout
 - 合并小搬运
 
-### Synchronization-bound
+### Dependency-bound
 
 特征：
 
-- 依赖等待时间长
-- core idle
-- 多芯片 step 相互等待
+- job 之间依赖过长
+- pipeline 频繁等待
+- 调度图串行化明显
 
 优化：
 
-- 减少同步次数
-- 合并数据块
-- 通信与计算 overlap
-- 均衡任务
-- 检查死锁或不必要 barrier
+- 减少不必要的依赖
+- 合并过小的数据块
+- 提高 tile 复用
+- 让搬运与计算 overlap
 
 ### Launch / scheduling overhead
 
@@ -334,58 +332,7 @@ Transpose、reshape、broadcast 可能引发数据重排。结合 trace 判断�
 - 低精度中间结果可能影响精度
 - per-layer check 可定位融合前后差异
 
-## 8. 多核优化
-
-### 提高利用率
-
-- 每个 core 处理相近数据量
-- 避免所有 core 等一个 core
-- merge 操作可分两级
-- 长尾任务单独拆分
-
-### 减少依赖等待
-
-- 只在真实数据依赖处使用 pub / sub
-- 合并过小的 shared tensor shard
-- 避免不必要的跨 core 读写
-- 通信块不要过小
-
-### 检查输出模式
-
-如果输出写入导致冲突，会引入串行化或错误。使用明确 owner 或支持并发语义的 API。
-
-## 9. 多芯片优化
-
-### 通信与计算 overlap
-
-避免：
-
-```text
-完整跨 chip 数据收集
-  ↓
-完整 matmul
-```
-
-尽量：
-
-```text
-收到 block0 → matmul block0
-同时搬运下一 block
-```
-
-### 控制 chunk
-
-| chunk 太小 | chunk 太大 |
-|---|---|
-| 通信 / job 开销高 | overlap 差 |
-| 调度碎片多 | OCM 压力大 |
-| 带宽利用率低 | 等待时间长 |
-
-### 减少全局广播
-
-只发送接收方需要的数据，避免为了代码简单广播完整 tensor。
-
-## 10. 控制流优化
+## 8. 控制流优化
 
 ### 优先使用 `range`
 
@@ -406,7 +353,7 @@ Transpose、reshape、broadcast 可能引发数据重排。结合 trace 判断�
 
 loop-carried state 越多，依赖和调度越复杂。只保留真正需要跨迭代的状态。
 
-## 11. 编译缓存
+## 9. 编译缓存
 
 启用：
 
@@ -434,7 +381,7 @@ def kernel(...):
 - 调试 graph 时应关闭 cache，确保产物来自当前代码
 - 工具链或依赖变化应使 cache key 变化
 
-## 12. 自动调参状态说明
+## 10. 自动调参状态说明
 
 部分旧版 AXDSL 文档中提到 `auto_tune_cases`。在当前开源源码的公开 `ax.builder` 签名中，该参数已移除。
 
@@ -457,7 +404,7 @@ for case in CASES:
     run_benchmark(case)
 ```
 
-## 13. dtype 与性能
+## 11. dtype 与性能
 
 常见方向：
 
@@ -475,7 +422,7 @@ for case in CASES:
 
 不要为了性能直接降低 reduce / softmax 中间精度。
 
-## 14. 性能实验模板
+## 12. 性能实验模板
 
 ```python
 CASES = [
@@ -501,7 +448,7 @@ for case in CASES:
 |---|---|---|---|---|---|---|---|---|
 | base | ... | bf16 | ... | ... | ... | ... | ... | PASS |
 
-## 15. 优化 checklist
+## 13. 优化 checklist
 
 - [ ] 已有 PyTorch reference
 - [ ] CRUN correctness 通过
@@ -512,13 +459,11 @@ for case in CASES:
 - [ ] tile 实验只改变一个变量
 - [ ] OCM 未超限
 - [ ] 输出无写冲突
-- [ ] 多 core 无长期空闲
-- [ ] 多 chip wait 有配对 update
 - [ ] cache 行为已确认
 - [ ] 低精度结果可接受
 - [ ] 多 shape 复测
 
-## 16. 小结
+## 14. 小结
 
 AXDSL 性能优化不是猜测，而是把问题拆成四个可观测对象：
 
@@ -526,7 +471,6 @@ AXDSL 性能优化不是猜测，而是把问题拆成四个可观测对象：
 Graph：算子与融合
 Memory：DDR / OCM / traffic
 Schedule：jobs、overlap、bubble
-Parallel：core / chip idle 与同步
 ```
 
 工具链提供了 graph、build context、NPU trace 和 cycle trace。善用这些报告，才能把“感觉更快”变成可解释、可复现、可传播的优化结论。

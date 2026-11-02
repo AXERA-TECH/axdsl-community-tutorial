@@ -44,7 +44,7 @@ docs/.vitepress/dist
 docs/
 ├── index.md                     首页与学习路径
 ├── guide/                       入门与核心原理
-├── advanced/                    控制流、多核、多芯片、性能
+├── advanced/                    控制流、性能
 ├── tutorials/                   完整实战教程
 ├── reference/                   API、Cookbook、FAQ、术语表、发布流程
 ├── examples/                    可运行 PYRUN 示例
@@ -99,7 +99,6 @@ https://<project-slug>.readthedocs.io/en/latest/
 ## 当前注意事项
 
 - 当前源码公开 `ax.builder` 签名未包含旧文档提到的 `auto_tune_cases`，教程不将其作为可用能力承诺。
-- 当前 CRUN 多芯片路径要求每 chip 1 core，文档按当前源码标注。
 - dtype / shape 的算子级支持矩阵仍需目标工具链补充。
 - 本项目采用 [BSD-3-Clause](LICENSE) 开源协议。
 

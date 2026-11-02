@@ -55,7 +55,7 @@ def kernel(...):
 注意：
 
 - `check` 与 `enable_cache=True` 不能同时使用
-- 多芯片与性能 dump 的支持范围可能受版本限制
+- 性能 dump 的支持范围可能受版本限制
 - 编译失败时应优先缩小 shape 并定位最小复现
 
 ## 4. BRUN：设备运行
@@ -286,16 +286,13 @@ python3 my_kernel.py
 
 典型原因：
 
-- shared tensor 版本依赖缺失
 - 读写冲突
-- producer/consumer 关系不明确
 - 多 chip 输出切片不一致
 
 处理：
 
 - 画数据流图
 - 标出每块数据的 owner
-- 对跨 core shared tensor 使用 pub / sub
 - 从 1 core / 1 chip 逐步扩展
 
 ### CRUN 与 PYRUN 差异
@@ -359,4 +356,4 @@ def test():
 | 资源超限 | build context |
 | 调度 / overlap 差 | NPU trace |
 | 动态循环行为异常 | simulator cycle trace |
-| 多核同步错 | 数据流图 + pub / sub 配对 |
+| 输出区域冲突 | 数据流图 + program owner |

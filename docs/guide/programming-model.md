@@ -34,15 +34,15 @@ ax.init(chip_num=1, core_num=1)
 
 | 参数 | 说明 |
 |---|---|
-| `chip_num` | 参与本次 DSL context 的 chip 数 |
-| `core_num` | 兼容参数；实际 launch 时通过 grid / launch config 选择 core 数 |
+| `chip_num` | 配置 DSL context 的 chip 数；当前示例固定为 1 |
+| `core_num` | 兼容参数；当前示例固定为 1 |
 
 注意事项：
 
 - 在启动 Kernel 前调用
 - 重新调用会重置当前 DSL context
-- 多芯片 Kernel 的 `chip_num` 决定记录多少个 chip graph
-- 某些 run mode / 后端对多芯片支持有限制，见后端文档
+- 本教程示例均使用单 chip 配置
+- 具体 run mode / backend 支持范围以目标工具链为准
 
 ## 3. `@ax.builder`
 
@@ -109,7 +109,7 @@ kernel[(grid_m, grid_n), core_num](...)
 - `program_id(0)` 表示 M 方向 tile 编号
 - `program_id(1)` 表示 N 方向 tile 编号
 
-如果省略 `core_num`，默认值为 `grid_m * grid_n`；多维 grid 建议显式指定，降低 launch config 歧义。实际可用 core 数受 AX8860 每 chip core 数和后端调度限制。
+如果省略 `core_num`，默认值为 `grid_m * grid_n`；多维 grid 建议显式指定，降低 launch config 歧义。具体可用 launch 配置以目标工具链和 backend 支持为准。
 
 ## 5. Program 与数据所有权
 

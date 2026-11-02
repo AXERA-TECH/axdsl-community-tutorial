@@ -140,13 +140,13 @@ pulsar2 run \
 | 单 chip | `chip_num` 必须为 1 |
 | 单 core | `core_num` 必须为 1 |
 | 单 program | launch grid 必须只有一个 program |
-| 无 chip 级操作 | 不支持 `shmem_put` 等多芯片操作 |
+| 后端范围 | 仅支持当前 DEVICE_CPU 路径已验证的完整 tensor 算子图 |
 | 完整 tensor 输入输出 | `load` / `store` 只支持完整 tensor，不支持 partial store |
 | view 只读 | DEVICE_CPU tensor views 是只读物化，不能作为可写状态 |
 | MatMul | 只支持 ordinary matrix multiplication |
 | Cast | 浮点转整数必须显式 `output_rounding=1`，即 toward zero |
 
-因此它不是 AX8860 多核 NPU 路径的替代品，而是设备端 CPU 执行路径。
+因此它不是 AX8860 NPU 主路径的替代品，而是设备端 CPU 执行路径。
 
 ## 5. 常见支持能力
 
@@ -172,7 +172,7 @@ pulsar2 run \
 | 计算单元 | AX8860 NPU core / engine | AXERA 设备 Arm CPU |
 | 典型用途 | 高性能 Kernel | CPU fallback、前后处理、语义验证 |
 | tile / OCM | 显式 NPU 内存层级 | 无 NPU OCM 编程模型 |
-| 多核 / 多芯片 | AXDSL 支持相关表达 | 当前只支持单 chip、单 core、单 program |
+| 并行执行 | 视目标 backend 支持 | 当前只支持单 chip、单 core、单 program |
 | 在线执行 | AXCL / BRUN | AXCL / BRUN + CPU runner |
 | 离线运行 | AXModel | 包含 CPU runner function 的 AXModel |
 

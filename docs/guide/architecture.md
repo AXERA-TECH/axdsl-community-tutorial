@@ -116,7 +116,6 @@ AXDSL Graph IR 由节点和 tensor 组成：
 - 普通计算节点：`AxAdd`、`AxMatMul`、`AxReduceSum` 等
 - 数据移动节点：load / store / move
 - 控制流节点：`AxIf`、`AxWhileLoop`、`AxRange`、`AxSwitch`
-- 通信节点：Neulink / shared memory 相关节点
 - 子图：控制流 branch / loop body
 
 ## 3. 一次 launch 的执行顺序
@@ -148,17 +147,6 @@ kernel[(4, 4), 1](x, y, output, tile=(64, 64))
 6. compile / simulate / execute
    根据 PYRUN / CRUN / BRUN 分支处理
 ```
-
-### 多芯片差异
-
-当 `chip_num > 1` 时，通常需要对每个 chip 调用一次同一个 Kernel builder：
-
-```python
-for chip_id in range(CHIP_NUM):
-    kernel[1](x_chip[chip_id], output_chip[chip_id], chip_id, CHIP_NUM)
-```
-
-AXDSL 会依次记录每个 chip 的图，所有 chip 记录完成后再统一执行多芯片仿真。
 
 ## 4. Record 语义与 Python 语义
 
@@ -238,7 +226,7 @@ def kernel(x, y, output, tile_size):
 1. Kernel 不需要隐式分配返回值
 2. 输出地址可由 caller 控制
 3. 更容易集成到推理引擎 custom op
-4. 多核 / 多芯片时每个 program 写自己的区域
+4. 每个 program 写自己的区域
 5. 可以显式表达 partial output 写回
 
 多个输出时：

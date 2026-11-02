@@ -371,7 +371,6 @@ n = torch.tensor([3], dtype=torch.int32)
 - `while_loop` 的循环次数在运行期确定，可能限制编译期优化
 - `range` 更容易展开和调度
 - branch 内 tensor 和 OCM 需要按所有分支可能的工作集评估
-- 多芯片 kernel 中控制流与数据搬运交错时，先用小规模验证执行顺序
 - `unroll_factor` 应通过 cycle / traffic / OCM 综合选择
 
 ## 9. 小结

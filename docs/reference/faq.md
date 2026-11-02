@@ -90,10 +90,6 @@ stop = min(start + TILE, x.shape[0])
 - `store`：OCM 结果 → DDR
 - `move`：移动或写入指定目标
 
-### OCM 和 Shared OCM 区别？
-
-OCM 是 core 私有；Shared OCM 是 chip 内多 core 共享。
-
 ### 为什么 OCM 超限？
 
 tile、权重、输出和中间 tensor 都会占用工作集。减小 tile 或减少临时变量。
@@ -146,45 +142,6 @@ body 接收 loop operands，按相同顺序返回更新后的 tensors，cond 必
 
 与数据分布、reduce 长度和 reference 有关。教程示例常用 `atol=1e-2` 到 `2e-2`，生产需按任务验证。
 
-## 多核
-
-### 多个 program 会自动使用多个 core 吗？
-
-launch config 提供 grid 和 core 数，后端负责调度。实际可用 core 数受硬件和实现限制。
-
-### core 之间如何共享数据？
-
-使用 Shared OCM，并通过 `pub / sub` 声明跨 core tensor 版本依赖。
-
-### 多核偶发错误怎么排查？
-
-检查：
-
-- 输出写冲突
-- pub / sub 缺失或作用域不匹配
-- producer/consumer 顺序
-- 每个 core 的 slice
-- 尾块 owner
-
-## 多芯片
-
-### 多芯片为什么每个 chip 调一次 kernel？
-
-AXDSL 需要为每个 chip 记录对应的 graph 和输入输出视图。
-
-### `pe` 是什么？
-
-通信目标 processing element，在当前教程中通常是目标 chip id。
-
-### pub / sub 报没有可见 publication 怎么办？
-
-检查：
-
-- `sub` 之前是否调用了 `pub`
-- `pub` 和 `sub` 是否处于相同控制流作用域
-- 是否试图订阅 core 私有 OCM tensor
-- 是否误把 pub / sub 当成芯片间通信
-
 ## 性能
 
 ### 增大 tile 一定更快吗？
@@ -220,5 +177,3 @@ AXDSL 需要为每个 chip 记录对应的 graph 和输入输出视图。
 | graph 记录失败 | 普通 Python 控制流、第三方库调用 |
 | range 契约失败 | state 数量、返回顺序、INT32 标量 |
 | while 死循环 | cond 是否更新且最终为 0 |
-| 多核旧值 | pub / sub 配对与作用域 |
-| 多芯片数据异常 | 通信表、pe、数据 owner |

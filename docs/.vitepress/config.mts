@@ -10,7 +10,7 @@ export default defineConfig({
   base,
   lang: 'zh-CN',
   title: 'AXDSL 社区教程',
-  description: '面向 AX8860 NPU 的 Python 自定义 Kernel DSL：从入门、内存模型、多核多芯片编程到性能调优。',
+  description: '面向 AX8860 NPU 的 Python 自定义 Kernel DSL：从入门、内存模型、控制流到性能调优。',
   head: [
     ['meta', { name: 'theme-color', content: '#0b66ff' }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }]
@@ -47,8 +47,6 @@ export default defineConfig({
         items: [
           { text: '常用算子与 PyTorch 迁移', link: '/advanced/operators' },
           { text: '结构化控制流与动态执行', link: '/advanced/control-flow' },
-          { text: '多核并行编程', link: '/advanced/multi-core' },
-          { text: '多芯片与 Neulink 通信', link: '/advanced/multi-chip' },
           { text: '性能优化指南', link: '/advanced/performance' }
         ]
       },

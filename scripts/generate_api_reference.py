@@ -92,17 +92,7 @@ GROUPS = [
     ("调试", [
         ("ax.dsl.device_print", "lang/device_print.py", "device_print"),
     ]),
-    ("多核核间协作", [
-        ("ax.parallel.pub", "parallel/pub_sub.py", "pub"),
-        ("ax.parallel.sub", "parallel/pub_sub.py", "sub"),
-    ]),
-    ("多芯片数据搬运", [
-        ("ax.parallel.shmem_create_tensor", "parallel/shmem_create_tensor.py", "shmem_create_tensor"),
-        ("ax.parallel.shmem_put", "parallel/shmem_put.py", "shmem_put"),
-        ("ax.host.shmem_create_tensor", "host/shmem_create_tensor.py", "shmem_create_tensor"),
-    ]),
 ]
-
 
 def get_func(rel: str, name: str):
     path = REPO / rel
@@ -314,6 +304,7 @@ def render_doc(node) -> str:
         line for line in doc.splitlines()
         if "The signal should be created with" not in line
     )
+    doc = doc.replace("multi-chip launch", "unsupported launch configuration")
     sections, order = split_doc_sections(doc)
     out: list[str] = []
 

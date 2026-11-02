@@ -16,8 +16,6 @@
 | Shape 与索引 | [`ax.dsl.reshape`](#axdslreshape)<br>[`ax.dsl.transpose`](#axdsltranspose)<br>[`ax.dsl.concat`](#axdslconcat)<br>[`ax.dsl.expand`](#axdslexpand)<br>[`ax.dsl.pad`](#axdslpad)<br>[`ax.dsl.gather`](#axdslgather)<br>[`ax.dsl.scatter`](#axdslscatter)<br>[`ax.dsl.index_select`](#axdslindex_select)<br>[`ax.dsl.index_add`](#axdslindex_add)<br>[`ax.dsl.select_scatter`](#axdslselect_scatter) |
 | 结构化控制流 | [`ax.dsl.if_op`](#axdslif_op)<br>[`ax.dsl.while_loop`](#axdslwhile_loop)<br>[`ax.dsl.range`](#axdslrange)<br>[`ax.dsl.switch`](#axdslswitch) |
 | 调试 | [`ax.dsl.device_print`](#axdsldevice_print) |
-| 多核核间协作 | [`ax.parallel.pub`](#axparallelpub)<br>[`ax.parallel.sub`](#axparallelsub) |
-| 多芯片数据搬运 | [`ax.parallel.shmem_create_tensor`](#axparallelshmem_create_tensor)<br>[`ax.parallel.shmem_put`](#axparallelshmem_put)<br>[`ax.host.shmem_create_tensor`](#axhostshmem_create_tensor) |
 
 ## 枚举与 dtype
 
@@ -127,7 +125,7 @@ The returned builder records the function into AXDSL graph IR when it is launche
 **Raises**
 
 - AssertionError: If correctness checking and compilation caching are both enabled.
-- ValueError: If DSL performance artifacts are requested for a cached, non-CRUN, or multi-chip launch.
+- ValueError: If DSL performance artifacts are requested for a cached, non-CRUN, or unsupported launch configuration.
 
 <h3 id="axinit">ax.init</h3>
 
@@ -1999,123 +1997,4 @@ The content of the tensor will be printed during simulation.
 **Returns**
 
 - None.
-
-
-## 多核核间协作
-<h3 id="axparallelpub">ax.parallel.pub</h3>
-
-**签名**
-
-```python
-def pub(
-    tensor: Tensor,
-) -> Tensor
-
-```
-
-**功能概述**
-
-Publish the writes to `tensor` recorded before this point.
-
-<h3 id="axparallelsub">ax.parallel.sub</h3>
-
-**签名**
-
-```python
-def sub(
-    tensor: Tensor,
-) -> Tensor
-
-```
-
-**功能概述**
-
-Subscribe subsequent readers to the latest visible publication.
-
-
-## 多芯片数据搬运
-<h3 id="axparallelshmem_create_tensor">ax.parallel.shmem_create_tensor</h3>
-
-**签名**
-
-```python
-def shmem_create_tensor(
-    shape: typing.Tuple[int, ...],
-    dtype: DslDtype,
-    name: str=None,
-) -> Tensor
-
-```
-
-**功能概述**
-
-Creates a DDR tensor for current chip, based on openSHMEM communication model.
-
-| 参数 | 说明 |
-|---|---|
-| `shape` | Shared tensor shape. |
-| `dtype` | DSL dtype. |
-| `name` | Optional tensor name. |
-
-**Returns**
-
-- Shared-memory tensor for the current chip.
-
-<h3 id="axparallelshmem_put">ax.parallel.shmem_put</h3>
-
-**签名**
-
-```python
-def shmem_put(
-    dst: Tensor,
-    src: Tensor,
-    pe: int,
-) -> None
-
-```
-
-**功能概述**
-
-Copies a DDR tensor to a remote chip with a blocking put.
-
-AXDSL-only communication API. Source and destination must be DDR tensors.
-
-| 参数 | 说明 |
-|---|---|
-| `dst` | Remote DDR destination tensor. |
-| `src` | Local DDR source tensor. |
-| `pe` | Destination chip id. |
-
-**Returns**
-
-- None.
-
-<h3 id="axhostshmem_create_tensor">ax.host.shmem_create_tensor</h3>
-
-**签名**
-
-```python
-def shmem_create_tensor(
-    shape: typing.Tuple[int, ...],
-    dtype: torch.dtype,
-    name: str=None,
-) -> Tensor
-
-```
-
-**功能概述**
-
-Creates a cross-chip shared-memory tensor from host code.
-
-AXDSL-only communication-buffer API. It registers shared DDR tensor metadata across chip contexts.
-
-| 参数 | 说明 |
-|---|---|
-| `shape` | Shared tensor shape. |
-| `dtype` | Torch dtype converted internally to a NumPy dtype. |
-| `name` | Optional tensor name. |
-
-**Returns**
-
-- Shared tensor metadata.
 
