@@ -128,7 +128,6 @@ Program 7
 ## 7. 运行
 
 ```bash
-source script/npu_dev
 python3 axnn/axnn/dsl/user_docs/examples/vector_add.py
 ```
 

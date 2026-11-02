@@ -44,12 +44,6 @@ Pulsar2 负责常规 ONNX 模型的导入、优化、量化、调度和编译；
 - 如需 CRUN / BRUN，还需对应 AX8860 NPU 工具链
 - 如需导出后使用 `pulsar2 run`，确认 `pulsar2` CLI 可用
 
-在仓库根目录进入开发环境：
-
-```bash
-source script/npu_dev
-```
-
 确认当前 Python 能找到包：
 
 ```bash
