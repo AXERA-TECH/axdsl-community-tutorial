@@ -10,12 +10,39 @@
 
 ## 1. 环境准备
 
-AXDSL 包含在 AXNN Python 包中。你需要：
+### AXDSL 是什么
+
+AXDSL 是 `axnn` 里的自定义 kernel 开发接口，用来：
+
+- 用 Python 描述一段在 NPU 上执行的算子逻辑；
+- 在 x86 主机上通过 `PYRUN` 直接验证结果；
+- 导出成标准 `.axmodel`，再用 `pulsar2 run` 仿真或上板运行。
+
+因此，装好 `axnn` wheel 就等于装好了 AXDSL，不需要额外安装 AXDSL 包。
+
+### AXDSL 和 Pulsar2 的关系
+
+```text
+axnn（Python 包）
+├── pulsar2 CLI        # ONNX → axmodel
+├── frontend/          # ONNX 解析、图优化
+├── quant/             # 量化
+├── yasched/           # 调度
+├── backend/           # 各芯片后端
+└── dsl/               # AXDSL：自定义 kernel
+```
+
+Pulsar2 负责常规 ONNX 模型的导入、优化、量化、调度和编译；AXDSL 位于同一套 `axnn` 工具链内，用于表达和编译自定义 kernel。两者最终都可以产出或运行 `.axmodel`。
+
+### 需要的环境
+
+你需要：
 
 - 当前仓库版本支持的 Python 环境
 - 可 import 的 `axnn` 包
 - 仓库依赖已安装
 - 如需 CRUN / BRUN，还需对应 AX8860 NPU 工具链
+- 如需导出后使用 `pulsar2 run`，确认 `pulsar2` CLI 可用
 
 在仓库根目录进入开发环境：
 
