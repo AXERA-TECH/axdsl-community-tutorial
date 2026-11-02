@@ -154,14 +154,14 @@ launch config 提供 grid 和 core 数，后端负责调度。实际可用 core 
 
 ### core 之间如何共享数据？
 
-使用 Shared OCM，并通过 signal / `sync_all` 建立同步关系。
+使用 Shared OCM，并通过 `pub / sub` 声明跨 core tensor 版本依赖。
 
 ### 多核偶发错误怎么排查？
 
 检查：
 
 - 输出写冲突
-- signal 缺失
+- pub / sub 缺失或作用域不匹配
 - producer/consumer 顺序
 - 每个 core 的 slice
 - 尾块 owner
@@ -176,15 +176,14 @@ AXDSL 需要为每个 chip 记录对应的 graph 和输入输出视图。
 
 通信目标 processing element，在当前教程中通常是目标 chip id。
 
-### signal_wait 卡住怎么办？
+### pub / sub 报没有可见 publication 怎么办？
 
 检查：
 
-- 是否有远端 update
-- `pe` 是否正确
-- value 是否可达
-- SET / ADD 语义是否一致
-- 是否形成循环等待
+- `sub` 之前是否调用了 `pub`
+- `pub` 和 `sub` 是否处于相同控制流作用域
+- 是否试图订阅 core 私有 OCM tensor
+- 是否误把 pub / sub 当成芯片间通信
 
 ## 性能
 
@@ -221,5 +220,5 @@ AXDSL 需要为每个 chip 记录对应的 graph 和输入输出视图。
 | graph 记录失败 | 普通 Python 控制流、第三方库调用 |
 | range 契约失败 | state 数量、返回顺序、INT32 标量 |
 | while 死循环 | cond 是否更新且最终为 0 |
-| 多核旧值 | signal wait / update 配对 |
-| 多芯片卡死 | 通信表、pe、signal value |
+| 多核旧值 | pub / sub 配对与作用域 |
+| 多芯片数据异常 | 通信表、pe、数据 owner |

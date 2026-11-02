@@ -45,10 +45,10 @@
 | AXModel | 可由 runtime 加载执行的编译产物 |
 | Neulink | AX8860 chip 间通信模块 |
 | PE | Processing Element；多芯片通信中常指目标 chip |
-| All-Gather | 使每个参与者最终都拥有完整数据 |
-| Ring all-gather | 沿环形拓扑逐 step 转发实现的 all-gather |
-| Producer | 数据或 signal 的产生方 |
-| Consumer | 等待并使用数据或 signal 的一方 |
+| Publication | `pub` 发布的 tensor 版本事件 |
+| Subscription | `sub` 订阅的 tensor 版本事件 |
+| Producer | 某个 tensor shard 或版本的写入方 |
+| Consumer | 读取某个 tensor shard 或版本的一方 |
 | Deadlock | 多个执行方相互等待，无法继续 |
 | Owner | 某输出区域唯一或明确负责写入的 program / core / chip |
 | Dtype | tensor 数据类型 |

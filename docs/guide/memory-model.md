@@ -257,11 +257,11 @@ Core 1 OCM
 Core 0 计算结果
    ↓ store / move
 Shared OCM
-   ↓ signal
-Core 1 等待 signal 后读取
+   ↓ pub
+Core 1 在 sub 后读取
 ```
 
-必须通过 signal 或同步 API 保证可见性，不能只依赖 Python 代码顺序。
+跨 core 读写 Shared OCM 时，应使用 `pub / sub` 声明 tensor 版本依赖，不能只依赖 Python 代码顺序。
 
 ## 8. 多芯片数据流
 
@@ -273,18 +273,17 @@ Core 1 等待 signal 后读取
 Chip 0 DDR block → Neulink → Chip 1 DDR/destination
 ```
 
-### Ring all-gather
+### 跨 chip 数据搬运
 
-以 4 chip 为例：
+以邻居发送为例：
 
 ```text
-Step 0: 每 chip 把本地块发给右邻居
-Step 1: 每 chip 转发收到的前一块
-Step 2: 继续转发
-Step 3: 每 chip 拥有完整数据
+Chip 0 本地 DDR block
+   ↓ shmem_put(pe=1)
+Chip 1 目标 DDR block
 ```
 
-详见 [Ring All-Gather 教程](/tutorials/ring-all-gather)。
+多芯片算法需要明确每个 chip 的数据分片、远端目标以及输出 owner。
 
 ## 9. Tile 设计
 
@@ -383,18 +382,19 @@ m1 = min((pid_m + 1) * TILE_M, M)
 - 初始化输出为 0 仅作为调试手段
 - 用小 shape 打印 index / shape
 
-### 同步缺失
+### 版本依赖缺失
 
 表现：
 
-- 读取到旧数据
+- 跨 core 读取旧数据
 - 多核偶发失败
 
 处理：
 
-- 为 shared 数据增加 signal
+- 对 shared tensor 的写入调用 `pub`
+- 在后续读取前调用 `sub`
 - 明确 producer / consumer
-- 检查 signal value 是否重复或回绕
+- 检查 pub / sub 是否处于相同控制流作用域
 
 ## 11. 性能直觉
 
@@ -428,7 +428,7 @@ m1 = min((pid_m + 1) * TILE_M, M)
 | 运行期偏移读取 | `dynamic_ld` |
 | 运行期偏移写入 | `dynamic_st` |
 | core 内局部工作区 | OCM |
-| core 间共享 | Shared OCM + signal |
+| core 间共享 | Shared OCM + pub / sub |
 | chip 间通信 | Neulink / shmem API |
 
 理解这些 API 后，AXDSL Kernel 的性能热点就能被明确拆解为：**tile 设计、搬运次数、并行度和同步等待**。

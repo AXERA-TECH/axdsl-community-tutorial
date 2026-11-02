@@ -137,7 +137,7 @@ output/simulator_cycle_trace.json
 
 - 运行期控制流
 - while / range 实际行为
-- signal 等待
+- 依赖等待
 - 动态事件时序
 
 ### 3.4 build context
@@ -194,7 +194,7 @@ output/build_context.json
 
 特征：
 
-- signal wait 时间长
+- 依赖等待时间长
 - core idle
 - 多芯片 step 相互等待
 
@@ -343,11 +343,11 @@ Transpose、reshape、broadcast 可能引发数据重排。结合 trace 判断�
 - merge 操作可分两级
 - 长尾任务单独拆分
 
-### 减少同步
+### 减少依赖等待
 
-- 只在数据依赖处使用 signal
-- 避免 `sync_all` 泛滥
-- 用阶段 signal 替代多次全局 barrier
+- 只在真实数据依赖处使用 pub / sub
+- 合并过小的 shared tensor shard
+- 避免不必要的跨 core 读写
 - 通信块不要过小
 
 ### 检查输出模式
@@ -361,7 +361,7 @@ Transpose、reshape、broadcast 可能引发数据重排。结合 trace 判断�
 避免：
 
 ```text
-完整 all-gather
+完整跨 chip 数据收集
   ↓
 完整 matmul
 ```
@@ -370,14 +370,14 @@ Transpose、reshape、broadcast 可能引发数据重排。结合 trace 判断�
 
 ```text
 收到 block0 → matmul block0
-同时发送下一 block
+同时搬运下一 block
 ```
 
 ### 控制 chunk
 
 | chunk 太小 | chunk 太大 |
 |---|---|
-| signal / job 开销高 | overlap 差 |
+| 通信 / job 开销高 | overlap 差 |
 | 调度碎片多 | OCM 压力大 |
 | 带宽利用率低 | 等待时间长 |
 

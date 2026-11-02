@@ -38,7 +38,8 @@ export default defineConfig({
           { text: '总体架构与工作原理', link: '/guide/architecture' },
           { text: '编程模型', link: '/guide/programming-model' },
           { text: '内存模型与数据搬运', link: '/guide/memory-model' },
-          { text: '执行、验证与调试', link: '/guide/execution' }
+          { text: '执行、验证与调试', link: '/guide/execution' },
+          { text: 'DEVICE_CPU 设备 CPU 后端', link: '/guide/device-cpu' }
         ]
       },
       {
@@ -58,7 +59,6 @@ export default defineConfig({
           { text: 'Tiled MatMul：二维切分', link: '/tutorials/tiled-matmul' },
           { text: 'Fused SiLU × Mul：算子融合', link: '/tutorials/fused-silu-mul' },
           { text: 'Dynamic Loop：动态循环', link: '/tutorials/dynamic-loop' },
-          { text: 'Ring All-Gather：多芯片通信', link: '/tutorials/ring-all-gather' }
         ]
       },
       {

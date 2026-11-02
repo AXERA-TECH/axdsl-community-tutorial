@@ -63,8 +63,6 @@ python3 docs/examples/fused_silu_mul.py
 python3 docs/examples/dynamic_range.py
 ```
 
-`docs/examples/ring_all_gather.py` 需要 CRUN 与多芯片仿真工具链支持。
-
 ## 更新 API Reference
 
 API Reference 由源码 docstring 生成：

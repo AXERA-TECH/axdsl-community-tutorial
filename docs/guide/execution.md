@@ -286,16 +286,16 @@ python3 my_kernel.py
 
 典型原因：
 
-- signal 顺序错误
+- shared tensor 版本依赖缺失
 - 读写冲突
-- producer/consumer 缺同步
+- producer/consumer 关系不明确
 - 多 chip 输出切片不一致
 
 处理：
 
 - 画数据流图
 - 标出每块数据的 owner
-- 为每次 remote write 配对 signal
+- 对跨 core shared tensor 使用 pub / sub
 - 从 1 core / 1 chip 逐步扩展
 
 ### CRUN 与 PYRUN 差异
@@ -359,4 +359,4 @@ def test():
 | 资源超限 | build context |
 | 调度 / overlap 差 | NPU trace |
 | 动态循环行为异常 | simulator cycle trace |
-| 多核同步错 | 数据流图 + signal 配对 |
+| 多核同步错 | 数据流图 + pub / sub 配对 |

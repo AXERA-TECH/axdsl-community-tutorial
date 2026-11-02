@@ -28,7 +28,7 @@ features:
     details: if、while、range、switch 与 dynamic_ld/st 让动态 shape 和数据相关执行不再是静态图的表达瓶颈。
   - icon: 🧵
     title: 多核与多芯片原生支持
-    details: Program Grid 映射并行任务，SHARED_OCM、signal 和 Neulink API 支持 4 core 与多 chip 协同。
+    details: Program Grid 映射并行任务，SHARED_OCM、pub/sub 和 Neulink 数据搬运 API 支持 4 core 与多 chip 协同。
   - icon: 🧪
     title: PYRUN / CRUN / BRUN 工作流
     details: 先验证语义，再编译仿真，最后设备运行；支持输出与逐层结果检查。
@@ -42,10 +42,10 @@ features:
 | 目标 | 推荐路径 | 时间 |
 |---|---|---|
 | 跑通第一个 Kernel | [快速上手](/guide/quickstart) → [Vector Add](/tutorials/vector-add) | 10–30 分钟 |
-| 理解核心模型 | [架构](/guide/architecture) → [编程模型](/guide/programming-model) → [内存模型](/guide/memory-model) | 1–2 小时 |
+| 理解核心模型 | [架构](/guide/architecture) → [编程模型](/guide/programming-model) → [内存模型](/guide/memory-model) → [DEVICE_CPU](/guide/device-cpu) | 1–2 小时 |
 | 编写真实算子 | [常用算子](/advanced/operators) → [Tiled MatMul](/tutorials/tiled-matmul) → [性能优化](/advanced/performance) | 半天 |
 | 掌握动态执行 | [控制流](/advanced/control-flow) → [Dynamic Loop](/tutorials/dynamic-loop) | 半天 |
-| 进入多芯片 | [多核](/advanced/multi-core) → [多芯片](/advanced/multi-chip) → [Ring All-Gather](/tutorials/ring-all-gather) | 1 天 |
+| 进入多芯片 | [多核](/advanced/multi-core) → [多芯片](/advanced/multi-chip) | 1 天 |
 
 ## 这套文档适合谁
 

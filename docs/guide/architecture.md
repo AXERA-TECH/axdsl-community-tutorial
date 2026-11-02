@@ -155,7 +155,7 @@ kernel[(4, 4), 1](x, y, output, tile=(64, 64))
 
 ```python
 for chip_id in range(CHIP_NUM):
-    kernel[1](x_chip[chip_id], output_chip[chip_id], signal, chip_id, CHIP_NUM)
+    kernel[1](x_chip[chip_id], output_chip[chip_id], chip_id, CHIP_NUM)
 ```
 
 AXDSL 会依次记录每个 chip 的图，所有 chip 记录完成后再统一执行多芯片仿真。

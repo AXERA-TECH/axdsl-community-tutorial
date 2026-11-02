@@ -68,7 +68,8 @@ AXDSL 把开发过程拆成五个可控层次：
 任务划分          Program Grid
 数据位置          DDR / OCM / Shared OCM
 数据搬运          load / store / move / dynamic_ld / dynamic_st
-协同同步          signal / shmem / Neulink API
+核间协作          pub / sub + Shared OCM
+芯片间搬运        shmem / Neulink API
 ```
 
 这带来三个重要变化。
@@ -177,15 +178,12 @@ AXDSL 提供：
 
 ### 5. 多芯片协同抽象
 
-AX8860 支持 chip 间通信。AXDSL 提供：
+AX8860 支持 chip 间数据搬运。AXDSL 提供：
 
 - `shmem_put`
-- `signal_update`
-- `signal_wait`
-- `shmem_signal_update`
-- shared memory tensor / signal 创建
+- shared memory tensor 创建
 
-这让 ring all-gather、多 chip GEMM 等模式可以以 Kernel 语义表达。
+chip 内 core 之间的版本依赖使用 `pub / sub` 表达；`pub / sub` 不是芯片间通信接口。
 
 ### 6. 工程化工具
 
@@ -200,6 +198,7 @@ AX8860 支持 chip 间通信。AXDSL 提供：
 | 类别 | 代表 API | 说明 |
 |---|---|---|
 | Kernel 定义 | `ax.builder` | Python 函数变为可启动 Kernel |
+| Backend | `BACKEND.AX8860`, `BACKEND.DEVICE_CPU` | NPU 与设备 Arm CPU 执行路径 |
 | 初始化 | `ax.init` | 配置参与 chip 数 |
 | Program | `program_id`, `num_programs` | 获取逻辑任务坐标与范围 |
 | 内存 | `load`, `store`, `move` | DDR / OCM / Shared OCM 搬运 |
@@ -210,8 +209,8 @@ AX8860 支持 chip 间通信。AXDSL 提供：
 | Shape | `reshape`, `transpose`, `concat`, `expand`, `pad` | 布局和形状变换 |
 | Index | `gather`, `scatter`, `index_select`, `topk`, `nonzero` | 动态索引 |
 | Control Flow | `if_op`, `while_loop`, `range`, `switch` | 运行期结构化控制流 |
-| Multi-core | `sync_all`, signal, Shared OCM | chip 内 core 协作 |
-| Multi-chip | `shmem_put`, `signal_wait` | Neulink 通信 |
+| Multi-core | `pub`, `sub`, Shared OCM | chip 内 core 协作 |
+| Multi-chip | `shmem_put` | Neulink 数据搬运 |
 | Validation | `check`, `check_mode`, tolerance | PYRUN / CRUN 对比 |
 | Performance | trace, perf artifacts | cycle、traffic、利用率分析 |
 
@@ -240,4 +239,4 @@ AXDSL 的价值可以概括为：
 - **能力全**：覆盖控制流、多核、多芯片和动态读写。
 - **可验证**：PYRUN / CRUN / BRUN 与逐层检查。
 - **可调优**：编译产物、trace 和性能报告联动。
-- **适合社区传播**：从 Vector Add 到 All-Gather 都能用同一套模型讲解。
+- **适合社区传播**：从 Vector Add 到 Tiled MatMul、动态循环和多芯片数据搬运都能用同一套模型讲解。

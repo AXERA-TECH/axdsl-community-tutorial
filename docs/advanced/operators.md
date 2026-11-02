@@ -42,7 +42,13 @@ ax.dsl.store(x=c, r=output)
 
 不要为了“调试方便”把每个中间结果都写回 DDR，除非确实需要观察。
 
-## 2. 能力矩阵
+## 2. Backend 适用性
+
+同一算子 API 在 AX8860 NPU 和 `BACKEND.DEVICE_CPU` 上的支持范围可能不同。`DEVICE_CPU` 是 AXERA 设备端 Arm CPU 后端，不是开发主机 x86 CPU；它有单 chip、单 core、单 program 等限制。
+
+详细说明见 [DEVICE_CPU：设备 Arm CPU 后端](/guide/device-cpu)。
+
+## 能力矩阵
 
 | 类别 | 常用 API | 对应 PyTorch / 语义 |
 |---|---|---|
@@ -264,7 +270,7 @@ y = ax.dsl.conv(
 ### reshape
 
 ```python
-y = ax.dsl.reshape(x, (M, N))
+y = ax.dsl.reshape(x, shape=(M, N))
 ```
 
 reshape 只改变视图 / IR 形状，不搬运数据语义上的元素重排。实际后端仍可能有 layout 要求。
@@ -342,7 +348,7 @@ indices, count = ax.dsl.nonzero(mask)
 y = ax.dsl.where(cond, a, b)
 z = ax.dsl.maximum(x, zero)
 w = ax.dsl.minimum(x, limit)
-c = ax.dsl.clip(x, min_value, max_value)
+c = ax.dsl.clip(x, min=min_value, max=max_value)
 ```
 
 ReLU 可表达为：
@@ -429,9 +435,10 @@ temp = ax.dsl.create_tensor(shape=x.shape, dtype=x.dtype)
 | `x @ w.T` | `ax.dsl.matmul(x, w, transposed=True)` |
 | `F.softmax(x, dim=-1)` | `ax.dsl.softmax(x, dim=-1)` |
 | `F.silu(x)` | `ax.dsl.silu(x)` |
-| `x.reshape(...)` | `ax.dsl.reshape(x, ...)` |
+| `x.reshape(shape)` | `ax.dsl.reshape(x, shape=shape)` |
 | `x.transpose(...)` | `ax.dsl.transpose(x, ...)` |
 | `torch.cat(...)` | `ax.dsl.concat(...)` |
+| `x.clamp(min, max)` | `ax.dsl.clip(x, min=min_value, max=max_value)` |
 | `x.to(torch.bfloat16)` | `ax.dsl.cast(x, dtype=ax.bf16)` |
 | `x[index]` | `ax.dsl.index_select(...)` / `gather(...)` |
 | `out.index_add_(...)` | `ax.dsl.index_add(..., r=out)` |

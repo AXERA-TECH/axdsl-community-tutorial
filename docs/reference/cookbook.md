@@ -122,7 +122,7 @@ ax.dsl.store(x=c_tile, r=output[m0:m1, n0:n1])
 ## 13. Shape
 
 ```python
-y = ax.dsl.reshape(x, (M, N))
+y = ax.dsl.reshape(x, shape=(M, N))
 y = ax.dsl.transpose(x, perm=(1, 0))
 y = ax.dsl.concat((a, b), dim=0)
 y = ax.dsl.pad(x, padding=(0, 1, 0, 0))
@@ -142,7 +142,7 @@ ax.dsl.index_add(x=value, indices=indices, r=output, dim=0)
 ```python
 zero = ax.dsl.zeros(shape=x.shape, dtype=x.dtype)
 relu = ax.dsl.maximum(x, zero)
-clipped = ax.dsl.clip(x, min_value, max_value)
+clipped = ax.dsl.clip(x, min=min_value, max=max_value)
 picked = ax.dsl.where(cond, a, b)
 ```
 
@@ -245,26 +245,23 @@ shared = ax.dsl.create_tensor(
 )
 ```
 
-## 24. 创建 signal
+## 24. 发布核间共享 tensor
 
 ```python
-signal = ax.parallel.shmem_create_signal()
+from axnn.dsl import parallel as axd
+
+published = axd.pub(shared)
 ```
 
-## 25. 单 chip core 同步
+## 25. 订阅核间共享 tensor
 
 ```python
-ax.parallel.sync_all()
+subscribed = axd.sub(shared)
 ```
 
-## 26. 更新并等待 signal
+`pub / sub` 用于 chip 内 core 之间的 tensor 版本依赖，不是芯片间通信。
 
-```python
-ax.parallel.signal_update(signal, 1)
-ax.parallel.signal_wait(signal, 1)
-```
-
-## 27. 发送数据到远端 chip
+## 26. 发送数据到远端 chip
 
 ```python
 ax.parallel.shmem_put(
@@ -274,31 +271,20 @@ ax.parallel.shmem_put(
 )
 ```
 
-## 28. 远端 signal 更新
+## 27. 选择 DEVICE_CPU 后端
 
 ```python
-ax.parallel.shmem_signal_update(
-    signal=signal,
-    value=step + 1,
-    pe=remote_chip_id,
-    sig_op=ax.SigOp.SET,
+from axnn.backend import BACKEND
+
+@ax.builder(
+    backend=BACKEND.DEVICE_CPU,
+    run_mode=ax.RunMode.BRUN,
 )
+def kernel(...):
+    ...
 ```
 
-## 29. 通信加 signal
-
-```python
-ax.parallel.shmem_put_signal_nbi(
-    dst=remote_dst,
-    src=local_src,
-    pe=remote_chip_id,
-    signal=remote_signal,
-    value=1,
-    sig_op=ax.SigOp.ADD,
-)
-```
-
-## 30. CRUN 正确性检查
+## 28. CRUN 正确性检查
 
 ```python
 @ax.builder(
@@ -313,7 +299,7 @@ def kernel(...):
     ...
 ```
 
-## 31. 编译缓存
+## 29. 编译缓存
 
 ```python
 @ax.builder(
@@ -325,7 +311,7 @@ def kernel(...):
     ...
 ```
 
-## 32. 性能导出
+## 30. 性能导出
 
 ```python
 @ax.builder(
@@ -338,19 +324,19 @@ def kernel(...):
     ...
 ```
 
-## 33. Trace 环境变量
+## 31. Trace 环境变量
 
 ```bash
 DUMP_NPU_TRACE=1 DEBUG_SIM_CYCLE_TRACE=1 python3 kernel.py
 ```
 
-## 34. device_print
+## 32. device_print
 
 ```python
 ax.dsl.device_print(...)
 ```
 
-## 35. BRUN session
+## 33. BRUN session
 
 ```python
 ax.init(chip_num=1)

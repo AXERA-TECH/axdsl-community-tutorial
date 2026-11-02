@@ -92,19 +92,14 @@ GROUPS = [
     ("调试", [
         ("ax.dsl.device_print", "lang/device_print.py", "device_print"),
     ]),
-    ("多核与多芯片并行", [
-        ("ax.parallel.sync_all", "parallel/sync_all.py", "sync_all"),
-        ("ax.parallel.shmem_create_tensor", "parallel/shmem_create_tensor.py", "shmem_create_tensor"),
-        ("ax.parallel.shmem_create_signal", "parallel/shmem_create_signal.py", "shmem_create_signal"),
-        ("ax.parallel.shmem_put", "parallel/shmem_put.py", "shmem_put"),
-        ("ax.parallel.shmem_put_signal_nbi", "parallel/shmem_put_signal_nbi.py", "shmem_put_signal_nbi"),
-        ("ax.parallel.shmem_signal_update", "parallel/shmem_signal_update.py", "shmem_signal_update"),
-        ("ax.parallel.signal_update", "parallel/signal_update.py", "signal_update"),
-        ("ax.parallel.signal_wait", "parallel/signal_wait.py", "signal_wait"),
+    ("多核核间协作", [
         ("ax.parallel.pub", "parallel/pub_sub.py", "pub"),
         ("ax.parallel.sub", "parallel/pub_sub.py", "sub"),
+    ]),
+    ("多芯片数据搬运", [
+        ("ax.parallel.shmem_create_tensor", "parallel/shmem_create_tensor.py", "shmem_create_tensor"),
+        ("ax.parallel.shmem_put", "parallel/shmem_put.py", "shmem_put"),
         ("ax.host.shmem_create_tensor", "host/shmem_create_tensor.py", "shmem_create_tensor"),
-        ("ax.host.shmem_create_signal", "host/shmem_create_signal.py", "shmem_create_signal"),
     ]),
 ]
 
@@ -313,6 +308,12 @@ def markdown_escape(text: str) -> str:
 
 def render_doc(node) -> str:
     doc = clean_doc(node)
+    # This sentence in an internal docstring recommends an API that is not yet
+    # part of the delivered community synchronization contract.
+    doc = "\n".join(
+        line for line in doc.splitlines()
+        if "The signal should be created with" not in line
+    )
     sections, order = split_doc_sections(doc)
     out: list[str] = []
 
@@ -348,7 +349,7 @@ def render_doc(node) -> str:
 
 heading = """# 完整算子与 API 列表
 
-本页按能力列出当前源码公开导出的 AXDSL API。签名与说明直接来自 `axnn/axnn/dsl` 源码 docstring，便于与工具链版本对齐。教程中常用的语义解释见 [常用算子与 PyTorch 迁移](/advanced/operators)。
+本页按能力列出当前社区教程覆盖的 AXDSL 公开 API。实现中尚未交付或未充分验证的内部接口不在社区教程中推荐。签名与说明直接来自 `axnn/axnn/dsl` 源码 docstring，便于与工具链版本对齐。教程中常用的语义解释见 [常用算子与 PyTorch 迁移](/advanced/operators)。
 
 ## 快速能力索引
 
@@ -394,13 +395,6 @@ heading += """
 | `OCM` | core 私有片上内存，适合局部 tile 与临时变量 |
 | `SHARED_OCM` | chip 内 core 共享片上内存 |
 | `SIGNAL` | 同步信号地址空间 |
-
-### SigOp
-
-| 值 | 说明 |
-|---|---|
-| `SET` | 将 signal 设置为指定值 |
-| `ADD` | 将指定值累加到 signal |
 
 ### dtype
 

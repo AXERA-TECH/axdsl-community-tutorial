@@ -30,7 +30,7 @@ Kernel 内：
 core_id = ax.program_id(0)
 ```
 
-注意：`program_id` 是 trace 时的逻辑坐标，Kernel 代码应根据它切分数据。不同 program 会记录 / 生成对应的数据访问关系。
+`program_id` 是逻辑任务坐标。Kernel 代码必须根据它计算当前 program 拥有的 tensor 区域。
 
 ## 2. 常见数据划分
 
@@ -84,7 +84,7 @@ x_head = x[:, head:head+1, :]
 可以显式指定：
 
 ```python
-kernel[grid, core_num](...)
+kernel[grid_shape, core_num](...)
 ```
 
 例如：
@@ -93,11 +93,11 @@ kernel[grid, core_num](...)
 kernel[(8, 8), 4](...)
 ```
 
-如果省略 `core_num`，默认为 grid 元素数量。实际调度受硬件 core 数与后端实现限制。
+如果省略 `core_num`，默认值为 grid 元素数量。实际可用 core 数受 AX8860 每 chip core 数和后端调度限制。
 
 ## 4. 独立并行模式
 
-如果 core 之间没有依赖，这是最理想的形式：
+如果 core 之间没有数据依赖，这是最理想的形式：
 
 ```text
 core 0: input slice 0 → compute → output slice 0
@@ -108,10 +108,10 @@ core 3: input slice 3 → compute → output slice 3
 
 特点：
 
-- 无通信
-- 无 signal
-- 无写冲突
+- 无共享写冲突
+- 无跨 core 依赖
 - 负载由数据划分决定
+- 通常最容易调试和调度
 
 示例：
 
@@ -128,166 +128,151 @@ def rows_kernel(x, output, rows_per_core):
     return output
 ```
 
-## 5. Shared OCM 协作
+## 5. Shared OCM
 
-core 私有 OCM 不能被其他 core 直接访问。要交换数据，需要 Shared OCM。
-
-典型流程：
-
-```text
-Producer core
-  计算 / load
-  move 到 Shared OCM
-  更新 signal
-
-Consumer core
-  等待 signal
-  从 Shared OCM move 到私有 OCM
-  计算
-```
-
-### 创建 Shared OCM tensor
+core 私有 OCM 不能被其他 core 直接访问。要在多个 core 之间共享中间数据，需要使用 `MemoryType.SHARED_OCM`。
 
 ```python
 from axnn.backend.base import MemoryType
 
 shared = ax.dsl.create_tensor(
-    shape=x.shape,
+    shape=(M, K),
     dtype=x.dtype,
     memory_type=MemoryType.SHARED_OCM,
 )
 ```
 
-### 同步 API
+典型工作方式：
 
-常用：
+1. 每个 core 写入自己拥有的 shard
+2. 发布该 shared tensor 的最新版本
+3. 其他 core 的后续读取订阅该版本
+4. 调度器根据 pub / sub 事件建立跨 core 依赖
+
+## 6. 核间同步：pub / sub
+
+当前交付 Kernel 中主要使用的核间同步机制是：
 
 ```python
-ax.parallel.shmem_create_signal()
-ax.parallel.signal_update(signal, value)
-ax.parallel.signal_wait(signal, value)
-ax.parallel.sync_all()
+from axnn.dsl import parallel as axd
+
+published = axd.pub(shared)
+subscribed = axd.sub(shared)
 ```
 
-`sync_all` 同步当前 chip 内参与 Kernel 的 core。signal 用于表达更细粒度的数据 readiness。
+### `pub`
 
-## 6. 最小 producer-consumer 示例
+```python
+axd.pub(shared)
+```
 
-以下示例来自源码测试中的 local signal 模式：core 0 把输入写入 Shared OCM，其他 core 等待后读取。
+含义：发布此前记录到 `shared` 上的写入。它会记录一个 tensor 版本事件，例如：
+
+```text
+shared@1
+```
+
+后续 `sub` 可以订阅这个版本。
+
+### `sub`
+
+```python
+axd.sub(shared)
+```
+
+含义：让当前位置之后读取 `shared` 的 job 订阅最近可见的发布版本。调度器会把 consumer 依赖到对应 producer 上。
+
+### 重要语义
+
+- `pub` 与 `sub` 作用于同一个 DSL tensor
+- `sub` 必须能看见当前作用域中之前的 `pub`
+- `pub` 发布的是该点之前完成的写入
+- `sub` 影响该点之后的读取
+- 对 `SHARED_OCM` tensor，事件可以建立跨 core 依赖
+- 对 core 私有 OCM tensor，事件不会让另一个 core 读到该 tensor
+- `pub / sub` 是 **chip 内核间同步**，不是芯片间同步
+
+## 7. Shard 交换示例
+
+下面的模式来自当前源码测试和交付 Kernel 常用写法：每个 core 先把属于自己的输入 shard 写入同一个 `SHARED_OCM` tensor，再发布和订阅该 tensor。
 
 ```python
 from axnn.backend.base import MemoryType
-import axnn.dsl as ax
 from axnn.dsl import parallel as axd
 
+import axnn.dsl as ax
 
-@ax.builder
-def local_signal_kernel(x, out):
+
+@ax.builder(run_mode=ax.RunMode.PYRUN)
+def exchange_kernel(x, output, shard_size):
     core_id = ax.program_id(0)
+    owned = slice(core_id * shard_size, (core_id + 1) * shard_size)
 
-    signal = axd.shmem_create_signal()
-    shared = ax.dsl.create_tensor(x.shape, x.dtype, MemoryType.SHARED_OCM)
+    shared = ax.dsl.create_tensor(
+        shape=x.shape,
+        dtype=x.dtype,
+        memory_type=MemoryType.SHARED_OCM,
+        name="exchange_shared",
+    )
 
-    if core_id == 0:
-        t = ax.dsl.load(x)
-        ax.dsl.move(t, r=shared)
-        axd.signal_update(signal, 1)
-    else:
-        axd.signal_wait(signal, 1)
-        t = ax.dsl.create_tensor(x.shape, x.dtype)
-        ax.dsl.move(shared, r=t)
-        ax.dsl.store(x=t, r=out)
+    # 当前 core 只写自己拥有的 shard。
+    ax.dsl.load(x[owned], r=shared[owned])
 
-    return out
+    # 发布当前 core 已完成的写入，并订阅完整 shared tensor 的可见版本。
+    axd.pub(shared)
+    axd.sub(shared)
+
+    # 后续读取 shared 时，调度器可以利用 pub/sub 依赖保证版本可见。
+    value = ax.dsl.mul(shared, shared)
+
+    # 输出同样按 owner 切分，避免多个 core 写同一区域。
+    ax.dsl.store(x=value[owned], r=output[owned])
+    return output
 ```
 
-启动：
+这个示例的重点是：
 
-```python
-ax.init(chip_num=1, core_num=2)
-x = torch.randn((2, 16), dtype=torch.float32)
-out = torch.empty_like(x)
-local_signal_kernel[2](x, out)
-```
+- `shared` 位于 `SHARED_OCM`
+- 每个 core 写入自己的 shard
+- `pub` 声明写入完成
+- `sub` 声明后续读取需要可见版本
+- 输出区域有唯一 owner
 
-## 7. Signal 语义
+## 8. 常用 pub / sub 模式
 
-### 更新
-
-```python
-axd.signal_update(signal, 1)
-axd.signal_update(signal, value, sig_op=ax.SigOp.SET)
-```
-
-### 等待
-
-```python
-axd.signal_wait(signal, value)
-```
-
-### 常见策略
-
-| 策略 | 适合场景 |
-|---|---|
-| SET 到固定阶段号 | 阶段明确的 pipeline |
-| ADD 累加计数 | 多 producer / 多块数据 ready |
-| 每块数据独立 signal | 精细同步，但开销更大 |
-| 一个 signal 表示批次完成 | 简单，但并行度可能降低 |
-
-选择时要避免：
-
-- 等待永远达不到的 value
-- 不同阶段重复使用相同 value
-- ADD 后 SET 导致状态回退
-- 多 producer 写同一 signal 时未定义顺序
-
-## 8. 并行模式
-
-### Map
-
-每个 core 独立处理相同结构的数据块。
+### 多 producer 写不同 shard
 
 ```text
-data blocks → core 0..N-1 → output blocks
+core 0 writes shared[0:16]
+core 1 writes shared[16:32]
+core 2 writes shared[32:48]
+core 3 writes shared[48:64]
+
+每个 core: pub(shared)
+后续读取前: sub(shared)
 ```
 
-### Reduce
-
-每个 core 计算局部结果，再归约。
+### 分阶段计算
 
 ```text
-core partials → Shared OCM → one core reduce
+stage 0:
+  core 写 partial_0
+  pub(partial_0)
+
+stage 1:
+  sub(partial_0)
+  读取 partial_0
+  计算 normalized
+  pub(normalized)
+
+stage 2:
+  sub(normalized)
+  读取 normalized
 ```
 
-### Pipeline
+### 循环内版本发布
 
-不同 core 处理不同阶段。
-
-```text
-core 0: stage 0
-core 1: stage 1
-core 2: stage 2
-```
-
-需要阶段 signal。
-
-### Producer-consumer
-
-```text
-producer core → shared buffer → consumer core
-```
-
-### Split-compute-merge
-
-```text
-input split
-  ↓
-cores compute
-  ↓
-shared partials
-  ↓
-merge core
-```
+在 `range` / `while_loop` body 中，也可以对同一 shared state 成对使用 `pub` / `sub`。事件会在图内记录，后端调度时建立对应依赖。
 
 ## 9. 负载均衡
 
@@ -325,7 +310,8 @@ merge core
 |---|---|---|
 | `output[0:128, :]` | core 0 | `store` |
 | `output[128:256, :]` | core 1 | `store` |
-| `acc[indices]` | 多 core | `index_add` 等支持累加语义的 API |
+| `shared[0:16]` | core 0 | `load(..., r=shared[0:16])` |
+| `shared[16:32]` | core 1 | `load(..., r=shared[16:32])` |
 
 如果 API 没有明确并发写语义，不要假设硬件会自动串行化。
 
@@ -335,52 +321,42 @@ merge core
 - [ ] 每个 core 工作量相近
 - [ ] 尾块有明确 owner
 - [ ] 输出没有写冲突
-- [ ] 中间结果是否需要 Shared OCM
-- [ ] signal 粒度是否过细
-- [ ] 是否存在不必要的 `sync_all`
+- [ ] shared tensor 每个 shard 有唯一 writer
+- [ ] 读写跨 core 共享 tensor 时使用 pub / sub
+- [ ] pub 与 sub 在相同作用域内配对
 - [ ] 每个 core OCM 是否超限
 - [ ] DDR traffic 是否随 core 数放大
 - [ ] 性能报告中是否有 core 空闲 bubble
 
 ## 12. 常见错误
 
-### 忘记同步
+### 把 pub / sub 当成芯片间通信
 
-表现：读取 Shared OCM 得到旧值。
+`pub / sub` 只描述 chip 内 core 之间的 tensor 版本依赖。跨 chip 数据移动应使用多芯片数据搬运 API，不能用 `pub / sub` 代替。
 
-处理：producer 更新 signal，consumer 等待。
+### 试图共享 core 私有 OCM
 
-### 同步过多
+私有 OCM 中的 tensor 对其他 core 不可见。跨 core 共享数据应放在 `SHARED_OCM`。
 
-表现：并行度下降，trace 中大量等待。
+### 多个 core 写同一输出区域
 
-处理：合并数据块，使用阶段 signal，减少全局 barrier。
+会导致写冲突或非确定结果。为每个 core 划分明确输出 owner。
 
-### 只在一个 core 上做大量工作
+### pub / sub 作用域不匹配
 
-表现：一个 core 忙，其他 core 空闲。
-
-处理：重新划分数据，或将 merge 拆成两级。
-
-### OCM 超限
-
-表现：多 core 编译失败或调度失败。
-
-处理：减少每个 core tile 和临时 tensor。
+如果 `pub` 在子图或父作用域中，`sub` 在另一个无法看见该发布的作用域中，构建会报错。应保证发布和订阅处于相同的控制流作用域。
 
 ### 假设 `program_id` 自动切分 tensor
 
-表现：所有 core 写同一输出或只写第一个 tile。
-
-处理：在 Kernel 内显式用 `program_id` 计算 slice。
+Grid 只提供坐标。Kernel 内必须显式用 `program_id` 计算 slice。
 
 ## 13. 小结
 
 | 目标 | 做法 |
 |---|---|
 | 并行处理数据 | Program Grid + slice |
-| core 间共享数据 | Shared OCM |
-| 表示数据 ready | signal |
-| 全体 core 同步 | `sync_all` |
-| 避免写冲突 | 明确输出 owner |
+| core 间共享数据 | `SHARED_OCM` |
+| 声明写入完成 | `pub` |
+| 声明后续读取依赖 | `sub` |
+| 避免写冲突 | 明确输出 / shard owner |
 | 提升利用率 | 均匀划分 + 合理 tile |
