@@ -209,7 +209,23 @@ kernel[8](...)
 kernel[(grid_m, grid_n), core_num](...)
 ```
 
-这里方括号中的整体是 launch config：第一项是 `grid_shape`，第二项是 core 数。教程示例保持单 core 配置。
+这里方括号中的整体是 launch config：第一项是 `grid_shape`，第二项是 core 数。
+
+如果省略 core 数，多维 grid 需要保留 trailing comma：
+
+```python
+kernel[(grid_m, grid_n),](...)
+```
+
+注意下面写法不是二维 grid：
+
+```python
+kernel[grid_m, grid_n]
+```
+
+它表示一维 grid 大小为 `grid_m`，core 数为 `grid_n`。
+
+详细语法见 [Kernel 启动与离线编译](/guide/kernel-launch-compile)。
 
 ## 5. 参数语义速览
 
@@ -217,7 +233,7 @@ kernel[(grid_m, grid_n), core_num](...)
 |---|---|---|
 | Torch tensor / DSL tensor | 运行期 tensor，值不能在编译期读取 | `x`, `y`, `output` |
 | int / tuple / list | 编译期常量 | `tile_size` |
-| NumPy 常量 | 默认按常量处理，或通过 `const_inputs` 显式声明 | weight |
+| NumPy 常量 | 按编译期常量处理 | weight |
 
 因此下面代码中的 `tile_size` 可以直接用于 Python 表达式：
 

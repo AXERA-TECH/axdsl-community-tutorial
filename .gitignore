@@ -8,5 +8,5 @@ output/
 
 # Source material used to bootstrap this tutorial. Keep them out of the docs repo.
 /dsl doc/
-/dsl doc.zip
+/dsl doc*.zip
 /__MACOSX/

@@ -94,6 +94,93 @@ GROUPS = [
     ]),
 ]
 
+# The checked-out internal source used by this docs repository is older than the
+# 2026-11-16 official API snapshot. Keep these two public signature changes stable
+# until the matching internal source is available.
+SIGNATURE_OVERRIDES = {
+    "ax.builder": """def builder(
+    _func=None,
+    /,
+    *,
+    check=Check.NO_CHECK,
+    check_mode=CheckMode.CHECK_OUTPUT,
+    check_rtol=1e-5,
+    check_atol=0,
+    check_cosine_similarity=0.999,
+    check_tensor_black_list=None,
+    run_mode=RunMode.BRUN,
+    backend=None,
+    enable_cache=True,
+    unique_axmodel=False,
+    cache_path=None,
+    dump_dsl_perf=False,
+    dump_path=None,
+    use_mlir=False,
+)""",
+    "ax.dsl.matmul": """def matmul(
+    x: Tensor,
+    y: Tensor,
+    *,
+    w_scale: float | Tensor = 1.0,
+    w_scale2: float | Tensor = 1.0,
+    output_dtype: DslDtype | DType | None = None,
+    transposed: bool | None = False,
+    output_add_assign: bool | None = False,
+    r: Tensor | None = None,
+) -> Tensor""",
+}
+
+DOC_OVERRIDES = {
+    "ax.builder": """Decorate a Python function as a launchable AXDSL kernel.
+
+The returned builder records the function into AXDSL graph IR when it is launched with a grid,
+for example `kernel[4](...)`. Execution can use the Python reference implementation or a specific
+backend. Correctness checking and compilation caching can be configured in decorator parameters.
+
+| 参数 | 说明 |
+|---|---|
+| `_func` | Function supplied as the kernel. Users normally omit this argument. |
+| `check` | Output comparison policy used by CRUN against a PYRUN reference. |
+| `check_mode` | Compare final outputs or recorded intermediate outputs. |
+| `check_rtol` | Relative tolerance for `Check.ALL_CLOSE`. |
+| `check_atol` | Absolute tolerance for `Check.ALL_CLOSE`. |
+| `check_cosine_similarity` | Minimum similarity for `Check.COSINE_SIMILARITY`. |
+| `check_tensor_black_list` | Optional tensor-name patterns excluded from per-layer checks. |
+| `run_mode` | Execute with the Python reference implementation or a specific backend. |
+| `backend` | `BACKEND.AX8860` or `BACKEND.DEVICE_CPU`. `None` selects AX8860. |
+| `enable_cache` | Reuse compilation artifacts. Cache and correctness checking cannot be enabled together. |
+| `unique_axmodel` | Reuse one loaded AXModel for every BRUN launch of this kernel. |
+| `cache_path` | Directory for compilation cache entries. Defaults to `~/.cache/axdsl`. |
+| `dump_dsl_perf` | Dump kernel source, raw and fused graphs, compiled job metadata, and simulator cycle trace for offline performance analysis. |
+| `dump_path` | Directory for compiled models and debug artifacts. Defaults to the `output` directory under the current working directory. |
+| `use_mlir` | Use MLIR graph rewriting for this kernel. Defaults to the AX transformation. |
+
+**Returns**
+
+- A decorator, or a launchable kernel for the no-parentheses form.
+
+**Raises**
+
+- AssertionError: If correctness checking and compilation caching are both enabled.
+- ValueError: If DSL performance artifacts are requested for a cached, non-CRUN, or unsupported launch configuration.""",
+    "ax.dsl.matmul": """Matrix multiplication.
+
+| 参数 | 说明 |
+|---|---|
+| `x` | Left input tensor. |
+| `y` | Right input tensor. |
+| `w_scale` | Weight scale. Shared scale for MX dtypes. |
+| `w_scale2` | Secondary weight scale. Per-tensor shared scale for NV dtypes. |
+| `output_dtype` | Optional output dtype. |
+| `transposed` | Whether the `y` input is transposed. |
+| `output_add_assign` | Whether to perform an in-place addition with the output tensor. |
+| `r` | Optional output tensor. |
+
+**Returns**
+
+- Result tensor.""",
+}
+
 def get_func(rel: str, name: str):
     path = REPO / rel
     tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -410,9 +497,11 @@ for group_title, items in GROUPS:
         anchor = display_name.replace(".", "").lower()
         lines.append(f'<h3 id="{anchor}">{display_name}</h3>\n\n')
         lines.append("**签名**\n\n")
-        lines.append("```python\n" + signature(node) + "\n\n```\n\n")
+        sig = SIGNATURE_OVERRIDES.get(display_name, signature(node))
+        doc = DOC_OVERRIDES.get(display_name, render_doc(node))
+        lines.append("```python\n" + sig + "\n\n```\n\n")
         lines.append("**功能概述**\n\n")
-        lines.append(render_doc(node) + "\n\n")
+        lines.append(doc + "\n\n")
 
 OUT.write_text("".join(lines), encoding="utf-8")
 print(f"generated {OUT} with {sum(len(x[1]) for x in GROUPS)} API entries")

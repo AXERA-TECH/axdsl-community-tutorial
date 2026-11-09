@@ -366,9 +366,11 @@ def kernel(...):
 缓存 key 包含：
 
 - kernel source / AST
-- 参数 shape 和 dtype
+- 输入和输出 shape / dtype
 - compile-time 参数值
-- launch grid
+- launch grid shape
+- core 数
+- chip 数
 - 工具链版本 / commit
 - 编译配置
 - 依赖版本
@@ -383,13 +385,12 @@ def kernel(...):
 
 ## 10. 自动调参状态说明
 
-部分旧版 AXDSL 文档中提到 `auto_tune_cases`。在当前开源源码的公开 `ax.builder` 签名中，该参数已移除。
+当前公开 `ax.builder` 签名不提供 `auto_tune_cases`。
 
 因此：
 
-- 社区首版文档不应承诺该 API 可用
+- 社区文档不应承诺 auto-tuning API 可用
 - 可在脚本层枚举 tile size / grid，并结合性能报告选择策略
-- 后续工具链恢复 auto-tune 后，再补充官方章节
 
 脚本层调参示例：
 

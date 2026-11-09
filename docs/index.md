@@ -39,7 +39,7 @@ features:
 | 目标 | 推荐路径 | 时间 |
 |---|---|---|
 | 跑通第一个 Kernel | [快速上手](/guide/quickstart) → [Vector Add](/tutorials/vector-add) | 10–30 分钟 |
-| 理解核心模型 | [架构](/guide/architecture) → [编程模型](/guide/programming-model) → [内存模型](/guide/memory-model) → [DEVICE_CPU](/guide/device-cpu) | 1–2 小时 |
+| 理解核心模型 | [架构](/guide/architecture) → [编程模型](/guide/programming-model) → [Kernel 启动与离线编译](/guide/kernel-launch-compile) → [内存模型](/guide/memory-model) → [DEVICE_CPU](/guide/device-cpu) | 1–2 小时 |
 | 编写真实算子 | [常用算子](/advanced/operators) → [Tiled MatMul](/tutorials/tiled-matmul) → [性能优化](/advanced/performance) | 半天 |
 | 掌握动态执行 | [控制流](/advanced/control-flow) → [Dynamic Loop](/tutorials/dynamic-loop) | 半天 |
 

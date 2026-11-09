@@ -29,6 +29,7 @@ AXModel / 编译产物
   │
   ├── PYRUN：Python reference 执行
   ├── CRUN：编译后 simulator 执行
+  ├── compile()：离线生成 .compiled.axmodel
   └── BRUN：设备 / AXCL 后端执行
 ```
 

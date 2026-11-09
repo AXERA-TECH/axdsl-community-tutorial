@@ -98,7 +98,7 @@ https://<project-slug>.readthedocs.io/en/latest/
 
 ## 当前注意事项
 
-- 当前源码公开 `ax.builder` 签名未包含旧文档提到的 `auto_tune_cases`，教程不将其作为可用能力承诺。
+- 当前公开 `ax.builder` 签名不提供 `auto_tune_cases`，教程不将其作为可用能力承诺。
 - dtype / shape 的算子级支持矩阵仍需目标工具链补充。
 - 本项目采用 [BSD-3-Clause](LICENSE) 开源协议。
 

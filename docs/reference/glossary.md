@@ -18,7 +18,6 @@
 | Caller-allocated output | 输出 buffer 由调用方创建并传入 Kernel |
 | Runtime tensor | 元数据在编译期可见、元素值运行期才可用的 tensor |
 | Compile-time constant | trace 时已确定的 Python / NumPy 常量 |
-| `const_inputs` | builder 参数，用于指定按常量处理的输入 |
 | DDR | chip 外部内存，常用作输入输出和大 buffer |
 | OCM | core 私有片上内存 |
 | Shared OCM | chip 内多 core 共享片上内存 |

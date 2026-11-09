@@ -60,12 +60,16 @@ def kernel(...):
 
 ## 4. BRUN：设备运行
 
+BRUN 的官方定义是：为选定 backend 编译 Kernel，然后通过 AXCL 在 AXERA 设备上启动。
+
 BRUN 通常要求：
 
 - 单 chip（以当前源码限制为准）
 - 启用 cache
 - 初始化 AXCL session
 - 输入输出位于对应 runtime device
+
+可以在构建机器上先用 `compile()` 生成 `.compiled.axmodel`，复制到板端 cache 目录，再由 BRUN 加载。详见 [Kernel 启动与离线编译](/guide/kernel-launch-compile)。
 
 典型流程：
 

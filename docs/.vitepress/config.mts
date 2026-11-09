@@ -37,6 +37,7 @@ export default defineConfig({
         items: [
           { text: '总体架构与工作原理', link: '/guide/architecture' },
           { text: '编程模型', link: '/guide/programming-model' },
+          { text: 'Kernel 启动与离线编译', link: '/guide/kernel-launch-compile' },
           { text: '内存模型与数据搬运', link: '/guide/memory-model' },
           { text: '执行、验证与调试', link: '/guide/execution' },
           { text: 'DEVICE_CPU 设备 CPU 后端', link: '/guide/device-cpu' }

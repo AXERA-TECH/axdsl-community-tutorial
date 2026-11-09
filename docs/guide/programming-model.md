@@ -79,7 +79,6 @@ def kernel(...):
 | `check_rtol` | 相对误差 |
 | `check_atol` | 绝对误差 |
 | `check_cosine_similarity` | 余弦相似度阈值 |
-| `const_inputs` | 显式指定哪些输入按编译期常量处理 |
 | `dump_dsl_perf` | 导出性能分析相关材料 |
 | `dump_path` | 调试与编译产物目录 |
 | `cache_path` | 缓存目录，默认 `~/.cache/axdsl` |
@@ -109,7 +108,21 @@ kernel[(grid_m, grid_n), core_num](...)
 - `program_id(0)` 表示 M 方向 tile 编号
 - `program_id(1)` 表示 N 方向 tile 编号
 
-如果省略 `core_num`，默认值为 `grid_m * grid_n`；多维 grid 建议显式指定，降低 launch config 歧义。具体可用 launch 配置以目标工具链和 backend 支持为准。
+如果省略 core 数，多维 grid 应写成：
+
+```python
+kernel[(grid_m, grid_n),](...)
+```
+
+默认 core 数为 `grid_m * grid_n`。
+
+特别注意：
+
+```python
+kernel[grid_m, grid_n]
+```
+
+不是二维 grid；它表示一维 grid 大小为 `grid_m`，core 数为 `grid_n`。完整语法见 [Kernel 启动与离线编译](/guide/kernel-launch-compile)。
 
 ## 5. Program 与数据所有权
 
@@ -174,18 +187,6 @@ kernel[grid](x, output, 128)
 - Python 函数对象
 
 它们可以参与 Python 分支、切片和循环，但值变化会生成不同的编译配置。
-
-### `const_inputs`
-
-如果需要强制某些输入按常量处理，可在 builder 上声明：
-
-```python
-@ax.builder(const_inputs=["weight"])
-def kernel(x, weight, output):
-    ...
-```
-
-适合权重、静态 lookup table 等数据。
 
 ## 7. Tensor 切片规则
 

@@ -58,11 +58,28 @@ Torch tensor 是 runtime tensor；int / tuple / list 等普通 Python 值是 com
 
 tile size 是编译期参数，会影响 IR、任务划分和编译产物，也可能影响 cache key。
 
-### `const_inputs` 什么时候用？
-
-用于权重、lookup table、常量输入等希望按编译期数据处理的参数。
-
 ## Grid 与切片
+
+### `kernel[2, 2]` 为什么不是二维 grid？
+
+`kernel[2, 2]` 中的方括号参数被解析为：
+
+```text
+grid_shape = 2
+core_num = 2
+```
+
+二维 grid 应写：
+
+```python
+kernel[(2, 2),]
+```
+
+如果还要指定 1 个 core：
+
+```python
+kernel[(2, 2), 1]
+```
 
 ### grid 会自动切 tensor 吗？
 
@@ -154,7 +171,7 @@ body 接收 loop operands，按相同顺序返回更新后的 tensors，cond 必
 
 ### 自动调参可用吗？
 
-当前开源源码公开 `ax.builder` 签名没有 `auto_tune_cases`。不要在社区首版文档承诺该 API。可在脚本层枚举参数并记录结果。
+当前公开 `ax.builder` 签名不提供 `auto_tune_cases`。不要在社区文档承诺该 API；可在脚本层枚举参数并记录结果。
 
 ### 缓存没有命中怎么办？
 

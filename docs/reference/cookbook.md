@@ -21,14 +21,25 @@ ax.init(chip_num=1, core_num=1)
 kernel[8](x, output, 128)
 ```
 
-## 2. 一维 tile 与尾块
+## 2. Kernel launch 语法
+
+```python
+kernel[4](a, output)          # 1D grid，默认 4 core
+kernel[4, 1](a, output)       # 1D grid，1 core
+kernel[(2, 2),](a, output)    # 2D grid，默认 4 core
+kernel[(2, 2), 1](a, output)  # 2D grid，1 core
+```
+
+注意：`kernel[2, 2]` 表示一维 grid 大小为 2、core 数为 2，不是二维 grid `(2, 2)`。
+
+## 3. 一维 tile 与尾块
 
 ```python
 start = ax.program_id(0) * TILE
 stop = min(start + TILE, N)
 ```
 
-## 3. 二维 tile
+## 4. 二维 tile
 
 ```python
 pid_m = ax.program_id(0)
@@ -40,7 +51,7 @@ n0 = pid_n * TILE_N
 n1 = n0 + TILE_N
 ```
 
-## 4. DDR → OCM → DDR
+## 5. DDR → OCM → DDR
 
 ```python
 x_tile = ax.dsl.load(x[start:stop])
@@ -48,14 +59,14 @@ y = ax.dsl.add(x_tile, x_tile)
 ax.dsl.store(x=y, r=output[start:stop])
 ```
 
-## 5. 写入已有 tensor
+## 6. 写入已有 tensor
 
 ```python
 temp = ax.dsl.create_tensor(shape=x.shape, dtype=x.dtype)
 ax.dsl.add(x, y, r=temp)
 ```
 
-## 6. Elementwise
+## 7. Elementwise
 
 ```python
 a = ax.dsl.add(x, y)
@@ -64,7 +75,7 @@ m = ax.dsl.mul(x, y)
 d = ax.dsl.div(x, y)
 ```
 
-## 7. Activation
+## 8. Activation
 
 ```python
 y_sigmoid = ax.dsl.sigmoid(x)
@@ -73,7 +84,7 @@ y_gelu = ax.dsl.gelu(x)
 y_silu = ax.dsl.silu(x)
 ```
 
-## 8. 数值函数
+## 9. 数值函数
 
 ```python
 y = ax.dsl.exp(x)
@@ -84,7 +95,7 @@ y = ax.dsl.floor(x)
 y = ax.dsl.ceil(x)
 ```
 
-## 9. Reduction
+## 10. Reduction
 
 ```python
 s = ax.dsl.sum(x, dim=-1, keepdim=True)
@@ -93,7 +104,7 @@ i = ax.dsl.argmax(x, dim=-1)
 p = ax.dsl.softmax(x, dim=-1)
 ```
 
-## 10. 稳定 softmax
+## 11. 稳定 softmax
 
 ```python
 m = ax.dsl.max(x, dim=-1, keepdim=True)
@@ -103,14 +114,14 @@ s = ax.dsl.sum(e, dim=-1, keepdim=True)
 y = ax.dsl.div(e, s)
 ```
 
-## 11. Matmul
+## 12. Matmul
 
 ```python
 # x: (M, K), w: (N, K)
 y = ax.dsl.matmul(x, w, transposed=True)
 ```
 
-## 12. Tiled matmul
+## 13. Tiled matmul
 
 ```python
 a_tile = ax.dsl.load(a[m0:m1, :])
@@ -119,7 +130,7 @@ c_tile = ax.dsl.matmul(a_tile, b_tile, transposed=True)
 ax.dsl.store(x=c_tile, r=output[m0:m1, n0:n1])
 ```
 
-## 13. Shape
+## 14. Shape
 
 ```python
 y = ax.dsl.reshape(x, shape=(M, N))
@@ -128,7 +139,7 @@ y = ax.dsl.concat((a, b), dim=0)
 y = ax.dsl.pad(x, padding=(0, 1, 0, 0))
 ```
 
-## 14. Index
+## 15. Index
 
 ```python
 y = ax.dsl.gather(x, indices, dim=0)
@@ -137,7 +148,7 @@ ax.dsl.scatter(r=output, indices=indices, x=value, dim=0)
 ax.dsl.index_add(x=value, indices=indices, r=output, dim=0)
 ```
 
-## 15. 条件选择
+## 16. 条件选择
 
 ```python
 zero = ax.dsl.zeros(shape=x.shape, dtype=x.dtype)
@@ -146,14 +157,14 @@ clipped = ax.dsl.clip(x, min=min_value, max=max_value)
 picked = ax.dsl.where(cond, a, b)
 ```
 
-## 16. dtype 转换
+## 17. dtype 转换
 
 ```python
 y = ax.dsl.cast(x, dtype=ax.bf16)
 s = ax.dsl.sum(x, dim=-1, output_dtype=ax.fp32)
 ```
 
-## 17. 常量
+## 18. 常量
 
 ```python
 import numpy as np
@@ -163,7 +174,7 @@ one = ax.dsl.full(shape=(1,), fill_value=1, dtype=ax.int32)
 step = ax.dsl.from_numpy(np.array([1], dtype=np.int32))
 ```
 
-## 18. 运行期 if
+## 19. 运行期 if
 
 ```python
 def true_func(cond, x, y, out):
@@ -177,7 +188,7 @@ def false_func(cond, x, y, out):
 ax.dsl.if_op(cond, out, true_func, false_func, cond, x, y, out)
 ```
 
-## 19. while 循环
+## 20. while 循环
 
 ```python
 def body(cond, state, one):
@@ -188,7 +199,7 @@ def body(cond, state, one):
 _, state, _ = ax.dsl.while_loop(cond, body, cond, state, one)
 ```
 
-## 20. range 循环骨架
+## 21. range 循环骨架
 
 ```python
 def body(index, state, output):
@@ -207,7 +218,7 @@ ax.dsl.range(
 )
 ```
 
-## 21. 动态读取
+## 22. 动态读取
 
 ```python
 tile = ax.dsl.dynamic_ld(
@@ -219,7 +230,7 @@ tile = ax.dsl.dynamic_ld(
 )
 ```
 
-## 22. 动态写入
+## 23. 动态写入
 
 ```python
 ax.dsl.dynamic_st(
@@ -233,7 +244,7 @@ ax.dsl.dynamic_st(
 )
 ```
 
-## 23. 选择 DEVICE_CPU 后端
+## 24. 选择 DEVICE_CPU 后端
 
 ```python
 from axnn.backend import BACKEND
@@ -246,7 +257,7 @@ def kernel(...):
     ...
 ```
 
-## 24. CRUN 正确性检查
+## 25. CRUN 正确性检查
 
 ```python
 @ax.builder(
@@ -261,7 +272,7 @@ def kernel(...):
     ...
 ```
 
-## 25. 编译缓存
+## 26. 编译缓存
 
 ```python
 @ax.builder(
@@ -273,7 +284,28 @@ def kernel(...):
     ...
 ```
 
-## 26. 性能导出
+## 27. 离线编译 AXModel
+
+```python
+ax.init(chip_num=1)
+compiled_path = kernel[(2, 2), 1].compile(a, b, output)
+print(compiled_path)
+```
+
+产物路径格式：
+
+```text
+<cache_path>/<kernel_name>.<hash>.compiled.axmodel
+```
+
+复制到开发板：
+
+```bash
+ssh user@board 'mkdir -p ~/.cache/axdsl'
+scp ~/.cache/axdsl/kernel.*.compiled.axmodel user@board:~/.cache/axdsl/
+```
+
+## 28. 性能导出
 
 ```python
 @ax.builder(
@@ -286,19 +318,19 @@ def kernel(...):
     ...
 ```
 
-## 27. Trace 环境变量
+## 29. Trace 环境变量
 
 ```bash
 DUMP_NPU_TRACE=1 DEBUG_SIM_CYCLE_TRACE=1 python3 kernel.py
 ```
 
-## 28. device_print
+## 30. device_print
 
 ```python
 ax.dsl.device_print(...)
 ```
 
-## 29. BRUN session
+## 31. BRUN session
 
 ```python
 ax.init(chip_num=1)
